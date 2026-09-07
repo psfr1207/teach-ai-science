@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>AI에게 과학 가르치기 — 5학년 우리 몸의 구조와 기능 (v2 알파)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#17324D;        /* 본문·머리글 */
+    --paper:#FAFBFC;      /* 바탕 */
+    --line:#D5DDE6;       /* 테두리 */
+    --sky:#2E6FE0;        /* 주요 동작 */
+    --mine:#DCEBFF;       /* 학생(나) 말풍선 */
+    --ai:#FFFFFF;         /* AI 말풍선 */
+    --leaf:#1E8E5A;       /* 마무리·완료 */
+    --sand:#FFF3D6;       /* 힌트 */
+    --muted:#6B7A8C;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--paper);color:var(--ink);font-family:"Noto Sans KR",system-ui,sans-serif;font-size:17px;line-height:1.55}
+  button{font:inherit}
+  .app{max-width:820px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
+
+  /* ── 시작 화면 ───────────────────────── */
+  .start{padding:32px 22px;display:flex;flex-direction:column;gap:22px}
+  .start h1{font-size:28px;line-height:1.3;margin:0;font-weight:700}
+  .start p{margin:0;color:var(--muted)}
+  .field{display:flex;flex-direction:column;gap:8px}
+  .field label{font-weight:500}
+  .field input,.field select{font:inherit;padding:14px 16px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+  .field input:focus,.field select:focus{outline:3px solid #BFD6FF;border-color:var(--sky)}
+  .lessons{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .lesson{border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff;text-align:left;cursor:pointer;line-height:1.35}
+  .lesson small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+  .lesson[aria-pressed="true"]{border-color:var(--sky);background:var(--mine)}
+  .primary{background:var(--sky);color:#fff;border:0;border-radius:12px;padding:16px;font-size:18px;font-weight:700;cursor:pointer}
+  .primary:disabled{background:#B7C6DB;cursor:not-allowed}
+  .ghost{background:transparent;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;color:var(--ink)}
+
+  /* ── 활동 화면 ───────────────────────── */
+  .topbar{position:sticky;top:0;z-index:2;background:var(--ink);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px}
+  .topbar .title{flex:1;font-weight:500;font-size:16px}
+  .timer{font-variant-numeric:tabular-nums;font-weight:700;font-size:18px}
+  .stage{background:#0F2540;border-radius:8px;padding:4px 10px;font-size:14px;font-weight:700}
+  .chat{flex:1;padding:18px 16px 12px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+  .msg{max-width:78%;padding:12px 15px;border-radius:16px;border:1.5px solid var(--line);position:relative;white-space:pre-wrap;word-break:keep-all}
+  .msg.ai{align-self:flex-start;background:var(--ai);border-bottom-left-radius:6px}
+  .msg.me{align-self:flex-end;background:var(--mine);border-color:#B7D0F5;border-bottom-right-radius:6px}
+  .msg.hint{background:var(--sand);border-color:#F0D48A}
+  .msg .who{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+  .msg.end{background:#E6F6EE;border-color:#9ED8B8;align-self:center;max-width:90%;text-align:center}
+  .typing{align-self:flex-start;color:var(--muted);font-size:14px;padding:0 6px}
+  .composer{position:sticky;bottom:0;background:var(--paper);border-top:1.5px solid var(--line);padding:10px 12px 14px;display:flex;flex-direction:column;gap:8px}
+  .composer .row{display:flex;gap:8px}
+  .composer textarea{flex:1;font:inherit;resize:none;height:56px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:#fff}
+  .composer textarea:focus{outline:3px solid #BFD6FF;border-color:var(--sky)}
+  .send{background:var(--sky);color:#fff;border:0;border-radius:12px;padding:0 20px;font-weight:700;cursor:pointer;min-width:84px}
+  .send:disabled{background:#B7C6DB}
+  .tools{display:flex;justify-content:space-between;align-items:center;font-size:14px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{border:1.5px solid var(--sky);color:var(--sky);background:#fff;border-radius:999px;padding:8px 14px;font-size:15px;cursor:pointer}
+  .chip.starter{border-color:#C9A227;color:#7A5E00;background:var(--sand)}
+  .progress{display:flex;gap:4px;margin-left:8px}
+  .progress span{width:22px;height:8px;border-radius:4px;background:#0F2540}
+  .progress span.on{background:#8FD0FF}
+  .tools button{background:none;border:0;color:var(--sky);cursor:pointer;padding:4px 2px;font-size:14px}
+
+  /* ── 안내 카드 ───────────────────────── */
+  dialog{border:0;border-radius:16px;padding:0;max-width:520px;width:calc(100% - 32px)}
+  dialog::backdrop{background:rgba(23,50,77,.45)}
+  .card{padding:22px}
+  .card h2{margin:0 0 10px;font-size:20px}
+  .card ol{margin:0 0 14px 20px;padding:0}
+  .card li{margin:6px 0}
+  .card .close{float:right}
+  .hidden{display:none!important}
+  .error{color:#B3261E;font-size:14px}
+  @media (prefers-reduced-motion:no-preference){.msg{animation:pop .18s ease-out}}
+  @keyframes pop{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 시작 화면 -->
+  <section id="start" class="start">
+    <div>
+      <h1>오늘 배운 과학, AI 학생에게 가르쳐 주세요</h1>
+      <p>AI는 오늘 처음 수업을 들은 학생이에요. 여러분이 선생님이 되어 6분 동안 설명해 주세요.</p>
+    </div>
+    <div class="field">
+      <label for="sid">학생 번호</label>
+      <input id="sid" inputmode="text" placeholder="예: S101 (선생님이 알려 준 번호)" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>오늘 차시</label>
+      <div class="lessons" id="lessons"></div>
+    </div>
+    <button class="primary" id="begin" disabled>6분 활동 시작</button>
+    <button class="ghost" id="howto">활동 방법 보기</button>
+    <p class="error hidden" id="startErr"></p>
+  </section>
+
+  <!-- 활동 화면 -->
+  <section id="room" class="hidden" style="display:flex;flex-direction:column;flex:1">
+    <header class="topbar">
+      <span class="title" id="roomTitle"></span>
+      <span class="timer" id="timer">06:00</span>
+      <span class="stage" id="stage">S1</span><span class="progress hidden" id="prog"><span class="on"></span><span></span><span></span></span>
+    </header>
+    <main class="chat" id="chat" aria-live="polite"></main>
+    <div class="composer">
+            <div class="row">
+        <textarea id="input" placeholder="설명을 입력하세요…" aria-label="설명 입력"></textarea>
+        <button class="send" id="send">보내기</button>
+      </div>
+      <div class="tools">
+        <button id="howto2">ⓘ 안내 카드 보기</button>
+        <span class="error hidden" id="roomErr"></span>
+      </div>
+    </div>
+  </section>
+
+  <dialog id="guide">
+    <div class="card">
+      <button class="ghost close" id="closeGuide">닫기</button>
+      <h2>활동 방법</h2>
+      <ol>
+        <li>오늘 배운 내용을 AI 학생에게 <b>내 말로</b> 설명해요. 교과서는 보지 않아요.</li>
+        <li>AI가 <b>왜? 어떻게 연결돼?</b> 하고 물으면, 그 까닭을 설명해요.</li>
+        <li>두 번 생각해도 모르면 AI가 낱말 힌트를 줘요. 힌트로 다시 설명해요.</li>
+        <li>6분이 지나면 활동이 끝나요. 다 못 해도 괜찮아요.</li>
+      </ol>
+      <p style="margin:0;color:var(--muted);font-size:14px">기기가 멈추면 손을 들어 선생님께 알려요.</p>
+    </div>
+  </dialog>
+</div>
+
+<script>
+/* ===================== 설정 ===================== */
+// Google Apps Script 웹 앱 배포 URL로 바꾸세요. (README 3단계)
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzjP6smXdKqtgvQ_h2fncgE1QIwDhIHhf_HxopGXzOOZKiz18nDDRHRiFJ3kUap5Old/exec";
+const SESSION_SECONDS = 6 * 60;
+const LESSONS = [
+  {n:1, name:"인체 골격 모형", pages:"86~89"},
+  {n:2, name:"뼈와 근육", pages:"90~91"},
+  {n:3, name:"소화기관", pages:"92~93"},
+  {n:4, name:"순환기관", pages:"94~95"},
+  {n:5, name:"호흡기관", pages:"96~97"},
+  {n:6, name:"배설기관", pages:"98~101"},
+  {n:7, name:"운동할 때 우리 몸의 변화", pages:"102~103"},
+  {n:8, name:"기관 관련 질병과 건강한 생활 방식", pages:"104~105"},
+];
+
+/* ===================== 상태 ===================== */
+const S = { sid:"", lesson:null, sessionId:"", stage:"S1", history:[], remaining:SESSION_SECONDS, timer:null, busy:false, ended:false, questionsSoFar:0, reachedS3:false, slow:false, s1Start:null, typingStart:null, qtype:"" };
+const $ = id => document.getElementById(id);
+
+/* ===================== 시작 화면 ===================== */
+const box = $("lessons");
+LESSONS.forEach(L => {
+  const b = document.createElement("button");
+  b.className = "lesson"; b.type = "button"; b.setAttribute("aria-pressed","false");
+  b.innerHTML = `${L.n}차시 ${L.name}<small>교과서 ${L.pages}쪽</small>`;
+  b.onclick = () => { S.lesson = L; [...box.children].forEach(c => c.setAttribute("aria-pressed", c===b)); check(); };
+  box.appendChild(b);
+});
+$("sid").addEventListener("input", check);
+function check(){ S.sid = $("sid").value.trim().toUpperCase(); $("begin").disabled = !(S.sid && S.lesson); }
+$("howto").onclick = $("howto2").onclick = () => $("guide").showModal();
+$("closeGuide").onclick = () => $("guide").close();
+
+$("begin").onclick = async () => {
+  $("begin").disabled = true; $("startErr").classList.add("hidden");
+  try {
+    const r = await call({ action:"start", sid:S.sid, lesson:S.lesson.n });
+    S.sessionId = r.sessionId;
+    $("start").classList.add("hidden"); $("room").classList.remove("hidden");
+    $("roomTitle").textContent = `${S.lesson.n}차시 ${S.lesson.name} (교과서 ${S.lesson.pages}쪽)`;
+    addMsg("ai", r.reply || "오늘 배운 거 이야기해 줘. 다 들을게.");
+    S.s1Start = Date.now(); S.typingStart = Date.now();
+    setStage(r.stage || "S1");
+    startTimer();
+    $("input").focus();
+  } catch(e) {
+    $("startErr").textContent = "시작하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요. (" + e.message + ")";
+    $("startErr").classList.remove("hidden"); $("begin").disabled = false;
+  }
+};
+
+/* ===================== 활동 화면 ===================== */
+$("send").onclick = send;
+$("input").addEventListener("input", () => { if (!S.typingStart) S.typingStart = Date.now(); });
+$("input").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+
+async function send(){
+  const text = $("input").value.trim();
+  if (!text || S.busy || S.ended) return;
+  // 첫 타이핑 발화의 속도(글자/초)로 느린 학생 판정 → 질문 상한 1회
+  if (!text.startsWith("[버튼]") && S.typingStart && S.slow === false && S.history.filter(h=>h.role==="student" && !h.text.startsWith("[버튼]")).length === 0) {
+    const cps = text.length / Math.max(1, (Date.now() - S.typingStart)/1000); S.slow = false; }
+  $("input").value = ""; addMsg("me", text.replace(/^\[버튼\]\s*/, "")); S.history.push({ role:"student", text });
+  setBusy(true);
+  try {
+    const r = await call({ action:"turn", sessionId:S.sessionId, sid:S.sid, lesson:S.lesson.n, stage:S.stage, history:S.history, text, remaining:S.remaining, questionsSoFar:S.questionsSoFar, slow:S.slow, s1Elapsed: S.s1Start ? Math.round((Date.now()-S.s1Start)/1000) : 0 });
+    if (r.redirect) addMsg("ai", r.redirect);
+    else if (r.hint && r.hint.on) addMsg("hint", r.reply);
+    else addMsg("ai", r.reply);
+    S.history.push({ role:"ai", text:r.reply });
+    if (typeof r.questionsSoFar === "number") S.questionsSoFar = r.questionsSoFar;
+    S.qtype = r.reply || ""; S.typingStart = Date.now();
+    if (r.stage === "S3") S.reachedS3 = true;
+    setStage(r.stage);
+    if (r.stage === "END") finish(r.reply ? "" : "오늘 설명 고마워!", r.end_reason || "resolved");
+  } catch(e) {
+    addMsg("ai", "잠깐만, 다시 말해 줄래?");
+    $("roomErr").textContent = "연결이 잠시 끊겼어요. 다시 보내 주세요."; $("roomErr").classList.remove("hidden");
+    setTimeout(() => $("roomErr").classList.add("hidden"), 4000);
+  } finally { setBusy(false); }
+}
+
+function addMsg(kind, text){
+  const d = document.createElement("div"); d.className = "msg " + kind;
+  const who = kind === "me" ? "나(선생님)" : "AI 학생";
+  d.innerHTML = `<span class="who">${who}</span>${escapeHtml(text)}`;
+  $("chat").appendChild(d); $("chat").scrollTop = $("chat").scrollHeight;
+}
+function setStage(s){ S.stage = s; $("stage").textContent = s === "END" ? "끝" : s;
+  const n = {S1:1,S2:2,S3:3,END:3}[s] || 1; [...$("prog").children].forEach((el,i)=>el.classList.toggle("on", i < n));
+  renderChips(); }
+/* 빠른 답 버튼(메타 발화는 타이핑 없이 보내고 로그에 [버튼] 표지) + 문장 시작 도우미 */
+function renderChips(){ return; // v2: 빠른 답 버튼·문장 시작 도우미 없음
+  
+  const box = $("chips"); box.innerHTML = "";
+  const add = (label, onclick, cls="chip") => { const b=document.createElement("button"); b.type="button"; b.className=cls; b.textContent=label; b.onclick=onclick; box.appendChild(b); };
+  if (S.ended) return;
+  if (S.stage === "S1") add("다 했어, 질문해 줘", () => sendText("[버튼] 다 했어. 질문해 줘."));
+  if (S.stage === "S2") { add("모르겠어, 힌트 줘", () => sendText("[버튼] 모르겠어. 힌트 줘."));
+    if (/왜/.test(S.qtype)) add("왜냐하면 …", () => starter("왜냐하면 "), "chip starter");
+    else if (/연결|없다면|다음|어떻게/.test(S.qtype)) add("…이/가 …해서 …", () => starter("이/가 해서 "), "chip starter"); }
+  if (S.stage === "S3") { add("이/가 …해서 …돼", () => starter("이/가 해서 돼"), "chip starter"); add("이대로 끝낼게", () => sendText("[버튼] 이대로 끝낼게.")); }
+}
+function starter(t){ const i=$("input"); if(!i.value) i.value=t; i.focus(); i.setSelectionRange(0,0); }
+function sendText(t){ $("input").value = t; send(); }
+function setBusy(b){ S.busy = b; $("send").disabled = b; $("input").disabled = b; if (!b) $("input").focus();
+  let t = document.querySelector(".typing"); if (b && !t){ t = document.createElement("div"); t.className="typing"; t.textContent="AI 학생이 생각하는 중…"; $("chat").appendChild(t); } if (!b && t) t.remove(); }
+
+function startTimer(){
+  S.timer = setInterval(() => {
+    S.remaining--; const m = String(Math.floor(S.remaining/60)).padStart(2,"0"), s = String(S.remaining%60).padStart(2,"0");
+    $("timer").textContent = `${m}:${s}`;
+    if (S.remaining <= 0) finish("6분이 다 됐어! 오늘 설명 정말 고마워. 덕분에 많이 배웠어.", "time_cap");
+  }, 1000);
+}
+async function finish(closing, reason){
+  if (S.ended) return; S.ended = true; clearInterval(S.timer);
+  if (closing) addMsg("end", closing);
+  const lastStage = S.stage; $("input").disabled = true; $("send").disabled = true; setStage("END");
+  try { await call({ action:"end", sessionId:S.sessionId, sid:S.sid, lesson:S.lesson.n, elapsed:SESSION_SECONDS - S.remaining, reason:reason || "resolved", reachedS3:S.reachedS3, lastStage }); } catch(e){}
+}
+
+/* ===================== 서버 호출 ===================== */
+async function call(payload){
+  // Apps Script는 text/plain으로 보내야 preflight 없이 통과합니다.
+  const res = await fetch(BACKEND_URL, { method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body: JSON.stringify(payload) });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+</script>
+</body>
+</html>
